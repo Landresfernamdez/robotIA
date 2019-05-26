@@ -23,6 +23,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 import android.widget.Button;
+
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -30,6 +32,11 @@ import java.util.Locale;
 import app.akexorcist.bluetotohspp.library.BluetoothSPP;
 import app.akexorcist.bluetotohspp.library.BluetoothState;
 import app.akexorcist.bluetotohspp.library.DeviceList;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 import static java.security.AccessController.getContext;
 
@@ -63,6 +70,32 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         FloatingActionButton fab = findViewById(R.id.fab);
+        OkHttpClient client=new OkHttpClient();
+        String url="https://reqres.in/api/users?page=2";
+        Request request=new Request.Builder()
+                .url(url)
+                .build();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+
+            }
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if(response.isSuccessful()){
+                    final String myResponse=response.body().string();
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(), myResponse, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+
+                }
+            }
+        });
+
 
         bluetooth = new BluetoothSPP(this);
         if (!bluetooth.isBluetoothAvailable()) {
@@ -138,8 +171,10 @@ public class MainActivity extends AppCompatActivity {
         initializeTextToSpeach();
         initializeSpeechRecognizer();
     }
+
     public void onStart() {
         super.onStart();
+
         if (!bluetooth.isBluetoothEnabled()) {
             bluetooth.enable();
         } else {
@@ -149,6 +184,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+    
     public void onDestroy() {
         super.onDestroy();
         bluetooth.stopService();
@@ -172,19 +208,19 @@ public class MainActivity extends AppCompatActivity {
         command = command.toLowerCase();
         if(command.indexOf("move")!= -1){
             if(command.indexOf("forward")!=-1){
-                speak("Moving forward");
+                //speak("Moving forward");
                 bluetooth.send(ADELANTE, true);
             }
             if(command.indexOf("backward")!= -1){
-                speak("Moving backwards");
+                //speak("Moving backwards");
                 bluetooth.send(ATRAS, true);
             }
             if(command.indexOf("left")!= -1){
-                speak("Moving to the left");
+                //speak("Moving to the left");
                 bluetooth.send(IZQ, true);
             }
             if(command.indexOf("right")!= -1){
-                speak("Moving to the right");
+                //speak("Moving to the right");
                 bluetooth.send(DER, true);
             }
         }
