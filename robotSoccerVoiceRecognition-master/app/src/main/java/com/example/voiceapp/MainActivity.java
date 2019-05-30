@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
@@ -18,16 +19,26 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.format.DateUtils;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 import android.widget.Button;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import app.akexorcist.bluetotohspp.library.BluetoothSPP;
 import app.akexorcist.bluetotohspp.library.BluetoothState;
@@ -57,6 +68,11 @@ public class MainActivity extends AppCompatActivity {
     Button atras;
     Button izq;
     Button der;
+    public  String move="";
+    public Request request;
+    public  String url;
+    public OkHttpClient client;
+    public JSONObject myJSONResponse;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,35 +84,9 @@ public class MainActivity extends AppCompatActivity {
         izq = (Button) findViewById(R.id.izq);
         der = (Button) findViewById(R.id.der);
         setSupportActionBar(toolbar);
-
         FloatingActionButton fab = findViewById(R.id.fab);
-        OkHttpClient client=new OkHttpClient();
-        String url="https://reqres.in/api/users?page=2";
-        Request request=new Request.Builder()
-                .url(url)
-                .build();
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-
-            }
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if(response.isSuccessful()){
-                    final String myResponse=response.body().string();
-                    MainActivity.this.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(getApplicationContext(), myResponse, Toast.LENGTH_SHORT).show();
-                        }
-                    });
-
-                }
-            }
-        });
-
-
+        client=new OkHttpClient();
+        url="http://192.168.43.213:8080/getInstruction";
         bluetooth = new BluetoothSPP(this);
         if (!bluetooth.isBluetoothAvailable()) {
             Toast.makeText(getApplicationContext(), "Bluetooth is not available", Toast.LENGTH_SHORT).show();
@@ -106,7 +96,6 @@ public class MainActivity extends AppCompatActivity {
             public void onDeviceConnected(String name, String address) {
                 connect.setText("Connected to " + name);
             }
-
             public void onDeviceDisconnected() {
                 connect.setText("Connection lost");
             }
@@ -156,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onClick(View view) {
+                //Code to config a voice recognition in the aplication only
                 /*int permissionCheck = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO);
                 if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
                     ActivityCompat.requestPermissions( MainActivity.this  ,new String[]{Manifest.permission.RECORD_AUDIO}, MY_PERMISSIONS_REQUEST_RECORD_AUDIO);
@@ -170,11 +160,63 @@ public class MainActivity extends AppCompatActivity {
         });
         initializeTextToSpeach();
         initializeSpeechRecognizer();
-    }
+        new Timer().scheduleAtFixedRate(new TimerTask(){
+            @Override
+            public void run(){
+                /*URL url1 = new URL();
+                HttpURLConnection conn = (HttpURLConnection) url1.openConnection();
+                conn.setRequestMethod("GET");
+                // read the response
+                InputStream in = new BufferedInputStream(conn.getInputStream());
+                response = convertStreamToString(in);*/
+                request=new Request.Builder()
+                        .url(url)
+                        .build();
+                client.newCall(request).enqueue(new Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        e.printStackTrace();
 
+                    }
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        if(response.isSuccessful()){
+                            final String myResponse=response.body().string();
+                            try {
+                                myJSONResponse= new JSONObject(myResponse);
+                                move=myJSONResponse.get("instruction").toString();
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            MainActivity.this.runOnUiThread(new Runnable() {
+                                @Override
+                                    public void run() {
+                                        bluetooth.send(move, true);
+                                        Toast.makeText(getApplicationContext(),move , Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+
+                            /*try {
+                                final JSONObject obj = new JSONObject(myResponse);
+                                MainActivity.this.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Toast.makeText(getApplicationContext(), obj.toString(), Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }*/
+                        }
+                    }
+                });
+                Toast.makeText(getApplicationContext(), "This'll run 5 seconds later", Toast.LENGTH_SHORT).show();
+            }
+        },0,5000);
+    }
     public void onStart() {
         super.onStart();
-
         if (!bluetooth.isBluetoothEnabled()) {
             bluetooth.enable();
         } else {
@@ -184,7 +226,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-    
     public void onDestroy() {
         super.onDestroy();
         bluetooth.stopService();

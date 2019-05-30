@@ -46,34 +46,26 @@ void loop()
        char c = Serial.read();
         switch (c) {
           case '1':
-           //Los dos motores giran en sentido horario.
-          //Si estuvieran montados en un robot este giraria a la derecha. 
-            control.Motor(200,100);//ATRAS
-            delay(3000);
+            control.Motor(200,100);//ADELANTE
+            delay(250);
             control.Motor(0,1);//APAGAR
             velocidad=150;//Reseteamos la velocidad
             break;
           case '2':
-           //Un motor gira en sentido horario y el otro antihorario
-            //Si estuvierán montados en un robot el robot retrocedería. 
-              control.Motor(50000,1);//izq adelante,der atras->izquierda
-              delay(3000);
+              control.Motor(-200,1);//izq adelante,der atras->izquierda
+              delay(250);
               control.Motor(0,1);
               velocidad=150;//Reseteamos la velocidad
             break;
           case '3':
-            //Los dos motores giran en sentido horario.
-          //Si estuvieran montados en un robot este giraria a la derecha. 
-            control.Motor(200,-100);//ADELANTE
-            delay(3000);
+            control.Motor(200,-100);//ATRAS
+            delay(250);
             control.Motor(0,1);//APAGAR
             velocidad=150;//Reseteamos la velocidad
             break;
           case '4':
-            //Un motor gira en sentido horario y el otro antihorario
-            //Si estuvierán montados en un robot el robot retrocedería. 
-              control.Motor(-50000,1);//izq atras,der adelante->derecha
-              delay(3000);
+              control.Motor(200,1);//izq atras,der adelante->derecha
+              delay(250);
               control.Motor(0,1);
               velocidad=150;//Reseteamos la velocidad
             break;
